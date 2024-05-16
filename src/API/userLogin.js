@@ -7,6 +7,7 @@ async function userLogin(userName, userPassword){
         alert("All fields must be filled out")
         return false
     }
+    console.log(process.env.REACT_APP_SERVER_PATH)
     let res = await axios.post(`http://${process.env.REACT_APP_SERVER_PATH}/auth/login`, {userName, userPassword})
     .then(result => {
         console.log(result)
