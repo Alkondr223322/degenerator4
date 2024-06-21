@@ -113,61 +113,64 @@ Background music suitable for a short-form video on the topic of [topic]`);
     const [smoothTransition, setsmoothTransition] = useState(true);
 
     async function generateContent(){
+        // Заблокувати інтерфейс
         setgenBlocked(true)
 
-
+        // Перевірити чи увійшов користувач до системи
         console.log(topic)
         let balanceRes;
         if(props.token === ''){
+            // Якщо ні, відкрити вікно логіну, розблокувати інтерфейс, зупинити генерацію
             props.handleShowLogin()
             setgenBlocked(false)
             return
         }
-
-        // if (needImages && +imageCount+imagesArray.length > 10 && !window.confirm("You are about to generate more images than a video can handle.\n Are you sure you want to proceed?")) {
-        //     setgenBlocked(false)
-        //     return
-        // }
-
-        // let price = (props.basePrice + (needImages ? props.imagePrice * imageCount : 0) + (needMusic ? props.musicPrice * videoDuration : 0)).toFixed(2)
+        // Розрахувати ціну генерації
         let price = (
             (needText ? props.basePrice : 0) + 
             (needMusic ? props.basePrice : 0) + 
             ((needTTSFemale || needTTSMale) ? props.basePrice : 0) + 
             (needImages ? props.imagePrice * imageCount + props.basePrice: 0)
         ).toFixed(2)
+        // Перевірити чи достатньо грошей на акаунті користувача
         if(props.balance < price){
+            // Якщо ні, відкрити вікно оплати, розблокувати інтерфейс, зупинити генерацію
             props.handleShowPayment()
             setgenBlocked(false)
             return
         }
 
         let textGenRes = videoText
+        // Якщо обрано опцію генерації тексту, відправити відповідний запит на сервер
         if(needText){
             textGenRes = await genText(topic, textPrompt)
             if(!textGenRes){
+                // При помилці вивести повідомлення, розблокувати інтерфейс, зупинити генерацію
                 alert('Something went wrong, funds for this portion of generation will not be taken, generation aborted')
                 setgenBlocked(false)
                 return
             }
-    
+            // Записати результат генерації у змінну
             setvideoText(textGenRes)
+            // Списати вартість генерації тексту з балансу користувача
             balanceRes = await userReduceBalance(props.basePrice, jwtDecode(props.token).userId)
             if(balanceRes){
                 props.setBalance(balanceRes)
             }
         }
 
-
+        // Якщо обрано опцію генерації голосу, відправити відповідний запит на сервер відповідно до статі голосу
         if(needTTSFemale){
             let speechGenRes = await genSpeech(textGenRes, 'Female')
             if(!speechGenRes){
+                // При помилці вивести повідомлення, розблокувати інтерфейс, зупинити генерацію
                 alert('Something went wrong, funds for this portion of generation will not be taken, generation aborted')
                 setgenBlocked(false)
                 return
             }
-    
+            // Записати результат генерації у змінну
             setspeechFile(speechGenRes)
+            // Списати вартість генерації голосу з балансу користувача
             balanceRes = await userReduceBalance(props.basePrice, jwtDecode(props.token).userId)
             if(balanceRes){
                 props.setBalance(balanceRes)
@@ -175,55 +178,68 @@ Background music suitable for a short-form video on the topic of [topic]`);
         }else if(needTTSMale){
             let speechGenRes = await genSpeech(textGenRes, 'Male')
             if(!speechGenRes){
+                // При помилці вивести повідомлення, розблокувати інтерфейс, зупинити генерацію
                 alert('Something went wrong, funds for this portion of generation will not be taken, generation aborted')
                 setgenBlocked(false)
                 return
             }
-    
+            // Записати результат генерації у змінну
             setspeechFile(speechGenRes)
+            // Списати вартість генерації голосу з балансу користувача
             balanceRes = await userReduceBalance(props.basePrice, jwtDecode(props.token).userId)
             if(balanceRes){
                 props.setBalance(balanceRes)
             }
         }
 
-        
+        // Якщо обрано опцію генерації музики, відправити відповідний запит на сервер
         if(needMusic){
+            // Згенерувати ноти
             let musicGenRes = await genMusic(topic, musicPrompt)
             if(!musicGenRes){
+                 // При помилці вивести повідомлення, розблокувати інтерфейс, зупинити генерацію
                 alert('Something went wrong, funds for this portion of generation will not be taken, generation aborted')
                 setgenBlocked(false)
                 return
             }
+            // Записати результат генерації у змінну
             setmusicSettings({...musicSettings, bassArr: musicGenRes[0], melodyArr: musicGenRes[1], chordsArr: musicGenRes[2]})
             //setMusicFile(musicGenRes)
+            // Скомпонувати музику
             let composeRes = await composeMusic(musicSettings.bassIns, musicSettings.melodyIns, musicSettings.chordsIns, musicGenRes[0], musicGenRes[1], musicGenRes[2])
             if(!composeRes){
+                // При помилці вивести повідомлення, розблокувати інтерфейс, зупинити генерацію
                 alert('Something went wrong, funds for this portion of generation will not be taken, generation aborted')
                 setgenBlocked(false)
                 return
             }
+            // Записати результат генерації у змінну
             setMusicFile(composeRes)
+            // Списати вартість генерації музики з балансу користувача
             balanceRes = await userReduceBalance(props.basePrice, jwtDecode(props.token).userId)
             if(balanceRes){
                 props.setBalance(balanceRes)
             }
         }
 
-
+        // Якщо обрано опцію генерації зображень, відправити відповідний запит на сервер
         if(needImages){
             let imageGenRes = await genImages(topic, imagesPrompt, imageCount, videoDuration)
             if(!imageGenRes){
+                // При помилці вивести повідомлення, розблокувати інтерфейс, зупинити генерацію
                 alert('Something went wrong, funds for this portion of generation will not be taken, generation aborted')
                 setgenBlocked(false)
                 return
             }
+            // Записати результат генерації у змінну
             setimagesArray([...imagesArray, ...imageGenRes])
+            // Списати вартість генерації музики з балансу користувача
             balanceRes = await userReduceBalance(props.imagePrice * imageCount + props.basePrice, jwtDecode(props.token).userId)
             if(balanceRes){
                 props.setBalance(balanceRes)
             }
         }
+        // Розблокувати інтерфейс
         setgenBlocked(false)
     }
 
